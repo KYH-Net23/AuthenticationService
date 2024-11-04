@@ -43,8 +43,6 @@ builder.Services.AddSwaggerGen(options =>
     );
 });
 
-builder.Services.AddScoped<TokenGeneratorService>();
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

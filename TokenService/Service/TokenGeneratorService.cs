@@ -5,9 +5,10 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace TokenService.Service;
 
-public class TokenGeneratorService
+public static class TokenGeneratorService
 {
-    public string GenerateToken(string email)
+	// IdentityCustomer som inparameter
+    public static string GenerateToken(string email)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
 
@@ -17,15 +18,15 @@ public class TokenGeneratorService
 
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, email),
-            new Claim(ClaimTypes.Role, "Customer")
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(ClaimTypes.Role, "Customer")
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddDays(7),
+            Expires = DateTime.UtcNow.AddMinutes(5),
             Issuer = "Kimmo Ahola",
             Audience = "Mille Elfver",
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
