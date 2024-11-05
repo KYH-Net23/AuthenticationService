@@ -9,7 +9,6 @@ TokenService is a microservice for generating authorization tokens, designed to 
 - [Usage](#usage)
   - [Endpoints](#endpoints)
 - [Token Generation](#token-generation)
-- [Security](#security)
 
 ---
 
@@ -59,10 +58,3 @@ Tokens are generated using [JWT](https://jwt.io/), with claims such as:
 Token expiration is set to **5 minutes**. The token contains issuer and audience fields to identify the source and intended recipient.
 
 ---
-
-## Security
-
-The secret key used to sign tokens is stored as a hardcoded string for simplicity in this example. For a production environment, ensure:
-- Secret keys are stored securely, such as in [Azure Key Vault](https://azure.microsoft.com/services/key-vault/).
-- Tokens are transmitted over HTTPS to prevent interception.
-
