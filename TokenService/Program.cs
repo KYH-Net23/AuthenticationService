@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
@@ -14,9 +15,10 @@ builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSet
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
-        policy => policy.AllowAnyOrigin()
+        policy => policy.WithOrigins("http://localhost:5173")
             .AllowAnyHeader()
-            .AllowAnyMethod());
+            .AllowAnyMethod()
+            .AllowCredentials());
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -52,19 +54,33 @@ builder.Services.AddSwaggerGen(options =>
     );
 });
 
-builder.Services.AddAuthentication(options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
-{
-    ValidateIssuer = true,
-    ValidateAudience = true,
-    ValidateLifetime = true,
-    ValidateIssuerSigningKey = true,
-    ValidIssuer = "https://www.rika.com",
-    ValidAudience = "https://www.rika.com",
-    IssuerSigningKey = new SymmetricSecurityKey("92336b63be8446e9a9ea351da752bd1a"u8.ToArray())
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = "https://www.rika.com",
+        ValidAudience = "https://www.rika.com",
+        IssuerSigningKey = new SymmetricSecurityKey("92336b63be8446e9a9ea351da752bd1a"u8.ToArray())
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Cookies["token"];
+            if (token != null)
+            {
+                context.Token = token;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddRateLimiter(options =>
