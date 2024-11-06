@@ -1,6 +1,7 @@
-# TokenService
+# AuthenticationService
 
-TokenService is a microservice for generating authorization tokens, designed to handle login requests and token creation based on user identity. This service uses JWT (JSON Web Token) for secure and efficient token management.
+
+AuthenticationService is a microservice for generating authorization tokens, designed to handle login requests and token creation based on user identity. This service uses JWT (JSON Web Token) for secure and efficient token management.
 
 ---
 
@@ -14,7 +15,7 @@ TokenService is a microservice for generating authorization tokens, designed to 
 
 ## Overview
 
-The TokenService project provides a simple, secure, and customizable way to handle user authorization. It is structured around two primary components:
+The AuthenticationService project provides a simple, secure, and customizable way to handle user authorization. It is structured around two primary components:
 - **TokenGeneratorController**: Handles login requests and generates tokens upon successful authentication.
 - **TokenGeneratorService**: Generates JWT tokens with defined claims and expiration.
 
