@@ -23,25 +23,21 @@ public class TokenGeneratorController(IOptions<ApiSettings> apiSettings) : Contr
         var options = new RestClientOptions(identityLoginUrl);
         var client = new RestClient(options);
 
-        var request = new RestRequest("api/login", Method.Post)
+        var request = new RestRequest("/login", Method.Post)
         {
             RequestFormat = DataFormat.Json
         };
 
         request.AddHeader("accept", "text/plain");
         request.AddHeader("Content-Type", "application/json");
-
-        request.AddJsonBody(new
-        {
-            email = loginRequest.Email,
-            password = loginRequest.Password
-        });
+        request.AddJsonBody(loginRequest);
 
         var response = await client.ExecuteAsync(request);
 
         var result = JsonConvert.DeserializeObject<ResponseResult>(response.Content!);
 
-        if (!response.IsSuccessful || result == null) return Unauthorized();
+        if (!response.IsSuccessful) return Unauthorized();
+        if(result == null) return BadRequest();
 
         var token = TokenGeneratorService.GenerateToken(result.ResponseContent);
         return Ok(new {token});
