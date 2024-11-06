@@ -1,23 +1,24 @@
-using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using TokenService.Service;
+using TokenService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
+
+builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
-        builder => builder.AllowAnyOrigin()
+        policy => policy.AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -45,7 +46,7 @@ builder.Services.AddSwaggerGen(options =>
                         Id = "Bearer"
                     }
                 },
-                new string[] { }
+                []
             }
         }
     );
@@ -61,18 +62,43 @@ builder.Services.AddAuthentication(options =>
     ValidateAudience = true,
     ValidateLifetime = true,
     ValidateIssuerSigningKey = true,
-    ValidIssuer = "Kimmo Ahola",
-    ValidAudience = "Mille Elfver",
+    ValidIssuer = "https://www.rika.com",
+    ValidAudience = "https://www.rika.com",
     IssuerSigningKey = new SymmetricSecurityKey("92336b63be8446e9a9ea351da752bd1a"u8.ToArray())
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            await context.HttpContext.Response.WriteAsync($"Too many requests. Retry after {retryAfter.TotalMinutes} minutes.", cancellationToken: token);
+        }
+        else
+        {
+            await context.HttpContext.Response.WriteAsync($"Too many requests. Retry after {retryAfter.TotalMinutes} minutes.", cancellationToken: token);
+        }
+    };
+
+    options.AddTokenBucketLimiter("token", tokenOptions =>
+    {
+        tokenOptions.TokenLimit = 10_000;
+        tokenOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        tokenOptions.QueueLimit = 10;
+        tokenOptions.ReplenishmentPeriod = TimeSpan.FromDays(1);
+        tokenOptions.TokensPerPeriod = 10_000;
+        tokenOptions.AutoReplenishment = true;
+    });
 });
 
 var app = builder.Build();
 
+app.UseRateLimiter();
 
 app.UseSwagger();
 app.UseSwaggerUI();
-
-
 
 app.UseHttpsRedirection();
 

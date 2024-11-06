@@ -1,24 +1,29 @@
-﻿using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RestSharp;
-using TokenService.Service;
+using TokenService.Models;
+using TokenService.Models.FormModels;
+using TokenService.Models.ResponseModels;
+using TokenService.Services;
 
 namespace TokenService.Controllers;
 
 [ApiController]
+[EnableRateLimiting("fixed")]
 [Route("[controller]")]
-public class TokenGeneratorController : ControllerBase
+public class TokenGeneratorController(IOptions<ApiSettings> apiSettings) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginModel loginRequest)
     {
-        var identityLoginUrl = "https://rika-identity-user-f5e3fddxg4bve2eg.swedencentral-01.azurewebsites.net";
+        var identityLoginUrl = new Uri(apiSettings.Value.BaseUrl);
 
         var options = new RestClientOptions(identityLoginUrl);
         var client = new RestClient(options);
 
-        var request = new RestRequest("api/CustomerLogin/login", Method.Post) // TODO change to a single login endpoint
+        var request = new RestRequest("api/login", Method.Post)
         {
             RequestFormat = DataFormat.Json
         };
@@ -34,46 +39,12 @@ public class TokenGeneratorController : ControllerBase
 
         var response = await client.ExecuteAsync(request);
 
-        var deserializedResponse = JsonConvert.DeserializeObject<Root>(response.Content);
+        var result = JsonConvert.DeserializeObject<ResponseResult>(response.Content!);
 
-        if (response.IsSuccessful)
-        {
-            var token = TokenGeneratorService.GenerateToken(deserializedResponse.Content.Id, deserializedResponse.Content.Email, deserializedResponse.Content.Roles);
-            return Ok(new {token});
-        }
+        if (!response.IsSuccessful || result == null) return Unauthorized();
 
-        return Unauthorized();
+        var token = TokenGeneratorService.GenerateToken(result.ResponseContent);
+        return Ok(new {token});
+
     }
-}
-
-public class LoginModel
-{
-    public string Email { get; set; } = null!;
-    public string Password { get; set; } = null!;
-}
-
-public class Content
-{
-    [JsonProperty("id")]
-    [JsonPropertyName("id")]
-    public string Id { get; set; }
-
-    [JsonProperty("email")]
-    [JsonPropertyName("email")]
-    public string Email { get; set; }
-
-    [JsonProperty("roles")]
-    [JsonPropertyName("roles")]
-    public List<string> Roles { get; set; }
-}
-
-public class Root  // TODO change name later
-{
-    [JsonProperty("message")]
-    [JsonPropertyName("message")]
-    public string Message { get; set; }
-
-    [JsonProperty("content")]
-    [JsonPropertyName("content")]
-    public Content Content { get; set; }
 }
