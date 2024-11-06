@@ -4,11 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TokenService.Controllers;
 
-[Route("authorize")]
 [ApiController]
 public class AuthController : ControllerBase
 {
-    [HttpGet]
+    [HttpGet("authorize")]
     [Authorize]
     public async Task<IActionResult> Validate()
     {
@@ -20,5 +19,12 @@ public class AuthController : ControllerBase
             isAuthenticated,
             role
         });
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("token");
+        return Ok();
     }
 }
