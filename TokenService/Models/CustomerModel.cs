@@ -1,4 +1,4 @@
-﻿namespace TokenService.Controllers;
+﻿namespace TokenService.Models;
 
 public class CustomerModel
 {
