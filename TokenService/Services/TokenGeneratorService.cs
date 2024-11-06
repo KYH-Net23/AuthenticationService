@@ -2,28 +2,28 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using TokenService.Controllers;
+using TokenService.Models.ResponseModels;
 
-namespace TokenService.Service;
+namespace TokenService.Services;
 
 public static class TokenGeneratorService
 {
-    public static string GenerateToken(string id, string email, List<string> roles)
+    public static string GenerateToken(ResponseContent content)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
 
-        var secretKey = "92336b63be8446e9a9ea351da752bd1a";
+        var secretKey = "92336b63be8446e9a9ea351da752bd1a";  //TODO save this in vault
 
         var key = Encoding.ASCII.GetBytes(secretKey);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Sub, id),
-            new(JwtRegisteredClaimNames.Email, email)
+            new(JwtRegisteredClaimNames.Sub, content.Id),
+            new(JwtRegisteredClaimNames.Email, content.Email)
         };
 
-        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(content.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {

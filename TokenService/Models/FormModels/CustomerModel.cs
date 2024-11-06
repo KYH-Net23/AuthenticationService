@@ -1,4 +1,4 @@
-﻿namespace TokenService.Models;
+﻿namespace TokenService.Models.FormModels;
 
 public class CustomerModel
 {
