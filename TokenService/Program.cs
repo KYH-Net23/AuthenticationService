@@ -1,13 +1,6 @@
-using System.Diagnostics;
-using System.Text;
-using System.Threading.RateLimiting;
 using Azure.Identity;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using TokenService.Extensions;
 using TokenService.Models;
-using TokenService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,10 +25,7 @@ else
 }
 
 var secretKey = builder.Configuration["TokenServiceSecretAccessKey"];
-if (string.IsNullOrEmpty(secretKey))
-{
-	Console.WriteLine("Empty");
-}
+
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowSpecificOrigin",
@@ -46,92 +36,11 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-	options.AddSecurityDefinition(
-		"Bearer",
-		new OpenApiSecurityScheme
-		{
-			Description =
-				"JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
-			Type = SecuritySchemeType.Http,
-			Scheme = "bearer",
-			BearerFormat = "JWT"
-		}
-	);
 
-	options.AddSecurityRequirement(
-		new OpenApiSecurityRequirement
-		{
-			{
-				new OpenApiSecurityScheme
-				{
-					Reference = new OpenApiReference
-					{
-						Type = ReferenceType.SecurityScheme,
-						Id = "Bearer"
-					}
-				},
-				[]
-			}
-		}
-	);
-});
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-	.AddJwtBearer(options =>
-{
-	options.TokenValidationParameters = new TokenValidationParameters
-	{
-		ValidateIssuer = true,
-		ValidateAudience = true,
-		ValidateLifetime = true,
-		ValidateIssuerSigningKey = true,
-		ValidIssuer = "https://www.rika.com",
-		ValidAudience = "https://www.rika.com",
-		IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
-	};
-
-	options.Events = new JwtBearerEvents
-	{
-		OnMessageReceived = context =>
-		{
-			var token = context.Request.Cookies["accessToken"];
-			if (token != null)
-			{
-				context.Token = token;
-			}
-
-			return Task.CompletedTask;
-		}
-	};
-});
-
-builder.Services.AddRateLimiter(options =>
-{
-	options.OnRejected = async (context, token) =>
-	{
-		context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-		if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-		{
-			await context.HttpContext.Response.WriteAsync($"Too many requests. Retry after {retryAfter.TotalMinutes} minutes.", cancellationToken: token);
-		}
-		else
-		{
-			await context.HttpContext.Response.WriteAsync($"Too many requests. Retry after {retryAfter.TotalMinutes} minutes.", cancellationToken: token);
-		}
-	};
-
-	options.AddTokenBucketLimiter("token", tokenOptions =>
-	{
-		tokenOptions.TokenLimit = 10_000;
-		tokenOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-		tokenOptions.QueueLimit = 10;
-		tokenOptions.ReplenishmentPeriod = TimeSpan.FromDays(1);
-		tokenOptions.TokensPerPeriod = 10_000;
-		tokenOptions.AutoReplenishment = true;
-	});
-});
+// Custom extension methods
+builder.Services.AddSwaggerGenWithConfig();
+builder.Services.AddAuthenticationExtension(secretKey);
+builder.Services.AddCustomRateLimiter();
 
 var app = builder.Build();
 
