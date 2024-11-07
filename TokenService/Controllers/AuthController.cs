@@ -24,7 +24,7 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public IActionResult Logout()
     {
-        Response.Cookies.Delete("token");
+        Response.Cookies.Delete("accessToken");
         return Ok();
     }
 }
