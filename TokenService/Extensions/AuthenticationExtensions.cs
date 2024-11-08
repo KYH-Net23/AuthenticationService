@@ -8,29 +8,27 @@ public static class AuthenticationExtensions
 {
     public static IServiceCollection AddAuthenticationExtension(this IServiceCollection services, string secretKey)
     {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = "https://www.rika.com",
+            ValidAudience = "https://www.rika.com",
+            IssuerSigningKey = key
+        };
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = "https://www.rika.com",
-                    ValidAudience = "https://www.rika.com",
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
-                };
-
+                options.TokenValidationParameters = tokenValidationParameters;
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
-                        var token = context.Request.Cookies["accessToken"];
-                        if (token != null)
-                        {
-                            context.Token = token;
-                        }
+                        context.Token = context.Request.Cookies["accessToken"];
                         return Task.CompletedTask;
                     }
                 };

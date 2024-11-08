@@ -9,22 +9,36 @@ public class AuthController : ControllerBase
 {
     [HttpGet("authorize")]
     [Authorize]
-    public async Task<IActionResult> Validate()
+    public IActionResult Validate()
     {
-        var isAuthenticated = User.Identity.IsAuthenticated;
-        var role = User.FindAll(ClaimTypes.Role).Select(c => c.Value).First();
-
-        return Ok(new
+        try
         {
-            isAuthenticated,
-            role
-        });
+            var isAuthenticated = User.Identity!.IsAuthenticated;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            return Ok(new
+            {
+                isAuthenticated,
+                role
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred during validation", error = ex.Message });
+        }
     }
 
     [HttpPost("logout")]
     public IActionResult Logout()
     {
-        Response.Cookies.Delete("accessToken");
-        return Ok();
+        try
+        {
+            Response.Cookies.Delete("accessToken");
+            return Ok(new { message = "Successfully logged out" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred during logout", error = ex.Message });
+        }
     }
 }

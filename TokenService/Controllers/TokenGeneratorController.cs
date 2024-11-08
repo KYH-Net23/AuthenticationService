@@ -19,40 +19,30 @@ public class TokenGeneratorController(IOptions<ApiSettings> apiSettings, IConfig
 	[HttpPost("login")]
 	public async Task<IActionResult> Login([FromBody] LoginModel loginRequest)
 	{
-		var identityLoginUrl = new Uri(apiSettings.Value.BaseUrl);
-		var secretKey = configuration["TokenServiceSecretAccessKey"];
+		if (!ModelState.IsValid)
+			return BadRequest(loginRequest);
 
-		var options = new RestClientOptions(identityLoginUrl);
-		var client = new RestClient(options);
-
+		var client = new RestClient(new RestClientOptions(new Uri(apiSettings.Value.BaseUrl)));
 		var request = new RestRequest("/login", Method.Post)
-		{
-			RequestFormat = DataFormat.Json
-		};
-
-		request.AddHeader("accept", "text/plain");
-		request.AddHeader("Content-Type", "application/json");
-		request.AddJsonBody(loginRequest);
+			.AddHeader("accept", "text/plain")
+			.AddHeader("Content-Type", "application/json")
+			.AddJsonBody(loginRequest);
 
 		var response = await client.ExecuteAsync(request);
-
 		var result = JsonConvert.DeserializeObject<ResponseResult>(response.Content!);
 
 		if (!response.IsSuccessful) return Unauthorized();
 		if (result == null) return BadRequest();
 
-		var token = TokenGeneratorService.GenerateToken(result.ResponseContent, secretKey);
-
-		var cookieOptions = new CookieOptions
+		var token = TokenGeneratorService.GenerateToken(result.ResponseContent, configuration["TokenServiceSecretAccessKey"]!);
+		Response.Cookies.Append("accessToken", token, new CookieOptions
 		{
 			HttpOnly = true,
 			Secure = true,
 			SameSite = SameSiteMode.None,
 			Expires = DateTime.UtcNow.AddHours(1),
 			Path = "/"
-		};
-
-		Response.Cookies.Append("accessToken", token, cookieOptions);
+		});
 
 		return Ok(new { Message = "Success!" });
 	}
