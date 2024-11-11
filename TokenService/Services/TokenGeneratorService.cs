@@ -9,14 +9,15 @@ namespace TokenService.Services;
 
 public static class TokenGeneratorService
 {
-    public static string GenerateToken(ResponseContent content, string secretKey)
+    public static string GenerateAccessToken(ResponseContent content, string secretKey)
     {
         var key = Encoding.ASCII.GetBytes(secretKey);
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Sub, content.Id),
-            new(JwtRegisteredClaimNames.Email, content.Email)
+            new(JwtRegisteredClaimNames.Email, content.Email),
+            new(JwtRegisteredClaimNames.Name, content.Email),
         };
         claims.AddRange(content.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
@@ -46,8 +47,8 @@ public static class TokenGeneratorService
         var key = Encoding.ASCII.GetBytes(secretKey);
         var tokenValidationParameters = new TokenValidationParameters
         {
-            ValidateAudience = true,
-            ValidateIssuer = true,
+            ValidateAudience = false,
+            ValidateIssuer = false,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(key),
             ValidateLifetime = false

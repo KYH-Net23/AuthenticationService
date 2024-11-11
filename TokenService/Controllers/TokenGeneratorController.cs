@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RestSharp;
+using TokenService.Context;
 using TokenService.Models;
 using TokenService.Models.FormModels;
 using TokenService.Models.ResponseModels;
@@ -13,7 +14,7 @@ namespace TokenService.Controllers;
 [ApiController]
 [EnableRateLimiting("fixed")]
 [Route("[controller]")]
-public class TokenGeneratorController(IOptions<ApiSettings> apiSettings, IConfiguration configuration
+public class TokenGeneratorController(IOptions<ApiSettings> apiSettings, IConfiguration configuration, DataContext context
 	) : ControllerBase
 {
 	[HttpPost("login")]
@@ -34,15 +35,36 @@ public class TokenGeneratorController(IOptions<ApiSettings> apiSettings, IConfig
 		if (!response.IsSuccessful) return Unauthorized();
 		if (result == null) return BadRequest();
 
-		var token = TokenGeneratorService.GenerateToken(result.ResponseContent, configuration["TokenServiceSecretAccessKey"]!);
+		var token = TokenGeneratorService.GenerateAccessToken(result.ResponseContent, configuration["TokenServiceSecretAccessKey"]!);
+		var refreshToken = TokenGeneratorService.GenerateRefreshToken();
 		Response.Cookies.Append("accessToken", token, new CookieOptions
 		{
 			HttpOnly = true,
 			Secure = true,
 			SameSite = SameSiteMode.None,
-			Expires = DateTime.UtcNow.AddHours(1),
+			Expires = DateTime.UtcNow.AddSeconds(2),
 			Path = "/"
 		});
+		
+		Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+		{
+			HttpOnly = true,
+			Secure = true,
+			SameSite = SameSiteMode.None,
+			Expires = DateTime.UtcNow.AddDays(7),
+			Path = "/"
+		});
+		
+		var refreshTokenModel = new RefreshTokenModel
+		{
+			UserName = result.ResponseContent.Email,
+			RefreshToken = refreshToken,
+			RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7)
+		};
+		
+		context.RefreshTokens.Add(refreshTokenModel);
+		await context.SaveChangesAsync();
+		
 
 		return Ok(new { Message = "Success!" });
 	}

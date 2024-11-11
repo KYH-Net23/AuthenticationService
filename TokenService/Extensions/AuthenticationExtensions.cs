@@ -33,15 +33,15 @@ public static class AuthenticationExtensions
                     },
                     OnChallenge = context =>
                     {
-                        if (context.AuthenticateFailure == null ||
-                            context.AuthenticateFailure.GetType() != typeof(SecurityTokenExpiredException))
-                            return Task.CompletedTask;
+                        // if (context.AuthenticateFailure == null ||
+                        //     context.AuthenticateFailure.GetType() != typeof(SecurityTokenExpiredException))
+                        //     return Task.CompletedTask;
                         
                         var refreshToken = context.Request.Cookies["refreshToken"];
                         
                         if (string.IsNullOrEmpty(refreshToken)) return Task.CompletedTask;
                         
-                        context.Response.Redirect("/auth/refresh");
+                        context.Response.Redirect($"/auth/refresh");
                         context.HandleResponse();
 
                         return Task.CompletedTask;

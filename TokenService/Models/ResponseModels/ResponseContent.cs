@@ -7,13 +7,17 @@ public class ResponseContent
 {
     [JsonProperty("id")]
     [JsonPropertyName("id")]
-    public string Id { get; set; } = null!;
+    public string? Id { get; set; } = null!;
+    
+    [JsonProperty("name")]
+    [JsonPropertyName("name")]
+    public string? Name { get; set; } = null!;
 
     [JsonProperty("email")]
     [JsonPropertyName("email")]
-    public string Email { get; set; } = null!;
+    public string? Email { get; set; } = null!;
 
     [JsonProperty("roles")]
     [JsonPropertyName("roles")]
-    public List<string> Roles { get; set; } = null!;
+    public IEnumerable<string> Roles { get; set; } = null!;
 }
