@@ -33,7 +33,12 @@ public class AuthController : ControllerBase
     {
         try
         {
-            Response.Cookies.Delete("accessToken");
+            Response.Cookies.Append("accessToken", string.Empty, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = DateTime.UtcNow.AddDays(-1)
+            });
             return Ok(new { message = "Successfully logged out" });
         }
         catch (Exception ex)
