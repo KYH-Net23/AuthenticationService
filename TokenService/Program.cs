@@ -1,4 +1,6 @@
 using Azure.Identity;
+using Microsoft.EntityFrameworkCore;
+using TokenService.Context;
 using TokenService.Extensions;
 using TokenService.Models;
 
@@ -8,7 +10,7 @@ builder.Services.AddControllers();
 
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 
-// builder.Services.AddDbContext<DataContext>(o => o.UseMySQL(builder.Configuration["IdentityServiceConnectionString"]!));
+builder.Services.AddDbContext<DataContext>(o => o.UseSqlServer(builder.Configuration["TokenDataConnectionString"]!));
 
 var vaultUri = new Uri($"{builder.Configuration["VaultUrl"]!}");
 if (builder.Environment.IsDevelopment())
