@@ -30,6 +30,21 @@ public static class AuthenticationExtensions
                     {
                         context.Token = context.Request.Cookies["accessToken"];
                         return Task.CompletedTask;
+                    },
+                    OnChallenge = context =>
+                    {
+                        // if (context.AuthenticateFailure == null ||
+                        //     context.AuthenticateFailure.GetType() != typeof(SecurityTokenExpiredException))
+                        //     return Task.CompletedTask;
+                        
+                        var refreshToken = context.Request.Cookies["refreshToken"];
+                        
+                        if (string.IsNullOrEmpty(refreshToken)) return Task.CompletedTask;
+                        
+                        context.Response.Redirect($"/auth/refresh");
+                        context.HandleResponse();
+
+                        return Task.CompletedTask;
                     }
                 };
             });

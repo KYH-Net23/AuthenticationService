@@ -54,7 +54,7 @@
 //
 //         // Mock TokenGeneratorService to return a JWT token for the admin
 //         // _mockTokenGeneratorService
-//         //     .Setup(s => s.GenerateToken(adminResponseContent))
+//         //     .Setup(s => s.GenerateAccessToken(adminResponseContent))
 //         //     .Returns("mocked-admin-jwt-token");
 //
 //         // Act: Call the Login method
@@ -68,9 +68,9 @@
 //         var responseValue = result.Value as dynamic;
 //         Assert.Equal("Success!", responseValue?.Message);
 //
-//         // Additional check to ensure that the service's GenerateToken was called with the correct content
+//         // Additional check to ensure that the service's GenerateAccessToken was called with the correct content
 //         _mockTokenGeneratorService.Verify(
-//             s => s.GenerateToken(It.Is<ResponseContent>(c => c.Roles.Contains("Admin"))),
+//             s => s.GenerateAccessToken(It.Is<ResponseContent>(c => c.Roles.Contains("Admin"))),
 //             Times.Once
 //         );
 //     }
