@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -17,7 +18,9 @@ public static class AuthenticationExtensions
             ValidateIssuerSigningKey = true,
             ValidIssuer = "https://www.rika.com",
             ValidAudience = "https://www.rika.com",
-            IssuerSigningKey = key
+            IssuerSigningKey = key,
+            ClockSkew = TimeSpan.Zero,
+            NameClaimType = JwtRegisteredClaimNames.Name
         };
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -33,17 +36,8 @@ public static class AuthenticationExtensions
                     },
                     OnChallenge = context =>
                     {
-                        // if (context.AuthenticateFailure == null ||
-                        //     context.AuthenticateFailure.GetType() != typeof(SecurityTokenExpiredException))
-                        //     return Task.CompletedTask;
-                        
-                        var refreshToken = context.Request.Cookies["refreshToken"];
-                        
-                        if (string.IsNullOrEmpty(refreshToken)) return Task.CompletedTask;
-                        
-                        context.Response.Redirect($"/auth/refresh");
+                        context.Response.StatusCode = 401;
                         context.HandleResponse();
-
                         return Task.CompletedTask;
                     }
                 };
