@@ -1,16 +1,21 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using TokenService.Context;
+using TokenService.Models.DataModels;
 using TokenService.Models.ResponseModels;
 using TokenService.Services;
 
 namespace TokenService.Controllers;
 
 [ApiController]
-public class AuthController(IConfiguration config, DataContext context) : ControllerBase
+public class AuthController(IConfiguration config, DataContext context, IOptions<CookieSettings> cookieSettings, IOptions<TokenSettings> tokenSettings) : ControllerBase
 {
+    private readonly string _secretKey = config["TokenServiceSecretAccessKey"]!;
+    private readonly int _accessTokenCookieDurationInHours = cookieSettings.Value.AccessTokenCookieDurationInHours;
+    private readonly int _accessTokenDurationInMinutes = tokenSettings.Value.AccessTokenDurationInMinutes;
+
     [HttpGet("authorize")]
     [Authorize]
     public IActionResult Validate()
@@ -57,29 +62,25 @@ public class AuthController(IConfiguration config, DataContext context) : Contro
     {
         try
         {
-            if (!Request.Cookies.TryGetValue("accessToken", out var accessToken) ||
-                !Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+            if (!Request.Cookies.TryGetValue("accessToken", out var accessToken) || !Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
             {
-                return BadRequest("Invalid client request: Missing tokens in headers");
+                return Unauthorized();
             }
-            // var accessToken = Request.Cookies["accessToken"]!.ToString().Replace("Bearer", string.Empty);
-            // var refreshToken = Request.Cookies["refreshToken"];
 
-            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
-                return BadRequest(new { message = "Invalid refresh token" });
+            var principal = TokenGeneratorService.GetPrincipalFromExpiredToken(accessToken, _secretKey);
 
-            var secretKey = config["TokenServiceSecretAccessKey"];
+            var nameClaim = principal.FindFirst("name")?.Value;
+            if (nameClaim is null)
+            {
+                return Unauthorized();
+            }
 
-            var principal = TokenGeneratorService.GetPrincipalFromExpiredToken(accessToken, secretKey!);
+            var username = principal.Claims.First(n => n.Type == "name").Value;
+            var userRefreshToken = context.Users.FirstOrDefault(u => u.UserName == username && !u.IsRevoked);
 
-            // Validate the refresh token in the database
-            var username = principal.Claims.First(n => n.Type == "name").Value; // Use Name claim for username
-            var user = context.RefreshTokens.SingleOrDefault(u => u.UserName == username);
+            if (userRefreshToken == null || userRefreshToken.RefreshToken != refreshToken || userRefreshToken.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                return BadRequest(new {Message ="Invalid refresh token or token expired. Please login again."});
 
-            if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-                return BadRequest("Invalid refresh token or token expired");
-
-            // Generate new tokens
             var responseContent = new ResponseContent
             {
                 Id = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value,
@@ -87,27 +88,14 @@ public class AuthController(IConfiguration config, DataContext context) : Contro
                 Roles = principal.FindAll(ClaimTypes.Role).Select(claim => claim.Value)
             };
 
-            var newAccessToken = TokenGeneratorService.GenerateAccessToken(responseContent, secretKey!);
-            var newRefreshToken = TokenGeneratorService.GenerateRefreshToken();
-
-            user.RefreshToken = newRefreshToken;
-            context.SaveChanges();
-
-            // Send the new tokens in response
-            Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(7) // Adjust expiration as needed
-            });
+            var newAccessToken = TokenGeneratorService.GenerateAccessToken(responseContent, _secretKey, _accessTokenDurationInMinutes);
 
             Response.Cookies.Append("accessToken", newAccessToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddMinutes(5) // Adjust expiration as needed
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddHours(_accessTokenCookieDurationInHours)
             });
 
             return Ok(new
@@ -120,7 +108,7 @@ public class AuthController(IConfiguration config, DataContext context) : Contro
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred during refresh", error = ex.Message });
         }
     }
-    
+
     // [HttpPost, Authorize]
     // [Route("revoke")]
     // public IActionResult Revoke()
