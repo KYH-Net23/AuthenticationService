@@ -1,13 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TokenService.Models;
+using TokenService.Models.DataModels;
 
 namespace TokenService.Context;
 
-public class DataContext : DbContext
+public class DataContext(DbContextOptions options) : DbContext(options)
 {
-    public DataContext(DbContextOptions options) : base(options)
-    {
-    }
-    
-    public DbSet<RefreshTokenModel> RefreshTokens { get; set; }
+    public DbSet<User> Users { get; set; }
 }
