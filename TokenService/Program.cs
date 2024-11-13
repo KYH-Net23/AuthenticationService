@@ -1,14 +1,14 @@
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using TokenService.Context;
 using TokenService.Extensions;
-using TokenService.Models;
 using TokenService.Models.DataModels;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-
+builder.Services.AddOpenApi();
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 builder.Services.Configure<CookieSettings>(builder.Configuration.GetSection("CookieSettings"));
 builder.Services.Configure<TokenSettings>(builder.Configuration.GetSection("TokenSettings"));
@@ -39,19 +39,22 @@ builder.Services.AddCors(options =>
 			.AllowCredentials());
 });
 
-builder.Services.AddEndpointsApiExplorer();
+// builder.Services.AddEndpointsApiExplorer();
 
 // Custom extension methods
-builder.Services.AddSwaggerGenWithConfig();
 builder.Services.AddAuthenticationExtension(secretKey);
 builder.Services.AddCustomRateLimiter();
 
 var app = builder.Build();
 
-app.UseRateLimiter();
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
+{
+	options.WithTheme(ScalarTheme.Mars)
+		.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+});
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseRateLimiter();
 
 app.UseHttpsRedirection();
 
