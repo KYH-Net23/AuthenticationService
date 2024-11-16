@@ -110,7 +110,7 @@ public class TokenGeneratorController : ControllerBase
 		return Ok(new { Message = "Success!" });
 	}
 
-	[HttpPost]
+	[HttpPost("generate-email-token")]
 	public async Task<IActionResult> GetTokenForEmailProvider([FromHeader(Name = "x-api-key")] string apiKey, [FromHeader(Name = "x-provider-name")] string providerName)
 	{
 		if (string.IsNullOrEmpty(apiKey))
@@ -122,7 +122,7 @@ public class TokenGeneratorController : ControllerBase
 
 		if (key is null || provider is null)
 		{
-			return BadRequest("Api key is invalid");
+			return BadRequest(new{Error = "Invalid header credentials."});
 		}
 
 		var token = TokenGeneratorService.GenerateAccessTokenToEmailProvider(_secretKeyForEmail, 5);
