@@ -62,4 +62,19 @@ public static class TokenGeneratorService
         
         return principal;
     }
+
+    public static string GenerateAccessTokenToEmailProvider(string secretKey, int expirationMinutes)
+    {
+        var key = Encoding.ASCII.GetBytes(secretKey);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),
+            Issuer = "https://www.rika.com",
+            Audience = "https://www.rika.com",
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityTokenHandler().CreateToken(tokenDescriptor));
+    }
 }
