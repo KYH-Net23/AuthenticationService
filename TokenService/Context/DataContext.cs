@@ -6,5 +6,5 @@ namespace TokenService.Context;
 
 public class DataContext(DbContextOptions options) : DbContext(options)
 {
-    public DbSet<User> Users { get; set; }
+    public DbSet<RefreshToken> Tokens { get; set; }
 }

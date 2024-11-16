@@ -10,11 +10,20 @@ using TokenService.Services;
 namespace TokenService.Controllers;
 
 [ApiController]
-public class AuthController(IConfiguration config, DataContext context, IOptions<CookieSettings> cookieSettings, IOptions<TokenSettings> tokenSettings) : ControllerBase
+public class AuthController : ControllerBase
 {
-    private readonly string _secretKey = config["TokenServiceSecretAccessKey"]!;
-    private readonly int _accessTokenCookieDurationInHours = cookieSettings.Value.AccessTokenCookieDurationInHours;
-    private readonly int _accessTokenDurationInMinutes = tokenSettings.Value.AccessTokenDurationInMinutes;
+    private readonly string _secretKey;
+    private readonly int _accessTokenCookieDurationInHours;
+    private readonly int _accessTokenDurationInMinutes;
+    private readonly DataContext _context;
+
+    public AuthController(IConfiguration config, DataContext context, IOptions<CookieSettings> cookieSettings, IOptions<TokenSettings> tokenSettings)
+    {
+        _context = context;
+        _secretKey = config["TokenServiceSecretAccessKey"]!;
+        _accessTokenCookieDurationInHours = cookieSettings.Value.AccessTokenCookieDurationInHours;
+        _accessTokenDurationInMinutes = tokenSettings.Value.AccessTokenDurationInMinutes;
+    }
 
     [HttpGet("authorize")]
     [Authorize]
@@ -42,12 +51,14 @@ public class AuthController(IConfiguration config, DataContext context, IOptions
     {
         try
         {
-            Response.Cookies.Append("accessToken", string.Empty, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                Expires = DateTime.UtcNow.AddDays(-1)
-            });
+            var refreshToken = _context.Tokens.FirstOrDefault(u => u.Token == Request.Cookies["refreshToken"]);
+            if (refreshToken == null) return
+                StatusCode(StatusCodes.Status418ImATeapot, new { message = "Unclear error. Contact the administrator" });
+
+            refreshToken.IsRevoked = true;
+            _context.SaveChanges();
+            Response.Cookies.Delete("accessToken");
+            Response.Cookies.Delete("refreshToken");
             return Ok(new { message = "Successfully logged out" });
         }
         catch (Exception ex)
@@ -76,9 +87,9 @@ public class AuthController(IConfiguration config, DataContext context, IOptions
             }
 
             var username = principal.Claims.First(n => n.Type == "name").Value;
-            var userRefreshToken = context.Users.FirstOrDefault(u => u.UserName == username && !u.IsRevoked);
+            var userRefreshToken = _context.Tokens.FirstOrDefault(u => u.UserName == username && !u.IsRevoked);
 
-            if (userRefreshToken == null || userRefreshToken.RefreshToken != refreshToken || userRefreshToken.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            if (userRefreshToken == null || userRefreshToken.Token != refreshToken || userRefreshToken.TokenExpiryTime <= DateTime.UtcNow)
                 return BadRequest(new {Message ="Invalid refresh token or token expired. Please login again."});
 
             var responseContent = new ResponseContent

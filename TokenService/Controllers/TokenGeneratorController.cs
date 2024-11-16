@@ -79,30 +79,30 @@ public class TokenGeneratorController : ControllerBase
 			Path = "/"
 		});
 		
-		var refreshTokenModel = new User
+		var refreshTokenModel = new RefreshToken
 		{
 			UserName = result.ResponseContent.Email,
-			RefreshToken = refreshToken,
-			RefreshTokenExpiryTime = DateTime.UtcNow.AddHours(_refreshTokenCookieDurationInHours)
+			Token = refreshToken,
+			TokenExpiryTime = DateTime.UtcNow.AddHours(_refreshTokenCookieDurationInHours)
 		};
 
-		var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == result.ResponseContent.Email);
+		var user = await _context.Tokens.FirstOrDefaultAsync(x => x.UserName == result.ResponseContent.Email);
 
 		if (user == null)
 		{
-			_context.Users.Add(new User
+			_context.Tokens.Add(new RefreshToken
 			{
 				UserName = result.ResponseContent.Email,
-				RefreshToken = refreshToken,
-				RefreshTokenExpiryTime = refreshTokenModel.RefreshTokenExpiryTime,
+				Token = refreshToken,
+				TokenExpiryTime = refreshTokenModel.TokenExpiryTime,
 				IsRevoked = false
 			});
 		}
 		else
 		{
-			user.RefreshToken = refreshTokenModel.RefreshToken;
-			user.RefreshTokenExpiryTime = refreshTokenModel.RefreshTokenExpiryTime;
-			_context.Users.Update(user);
+			user.Token = refreshTokenModel.Token;
+			user.TokenExpiryTime = refreshTokenModel.TokenExpiryTime;
+			_context.Tokens.Update(user);
 		}
 
 		await _context.SaveChangesAsync();

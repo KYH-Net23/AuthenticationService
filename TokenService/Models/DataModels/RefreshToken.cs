@@ -2,12 +2,12 @@
 
 namespace TokenService.Models.DataModels;
 
-public class User
+public class RefreshToken
 {
     [Key]
     public long Id { get; set; }
     public string? UserName { get; set; }
-    public string? RefreshToken { get; set; }
-    public DateTime RefreshTokenExpiryTime { get; set; }
+    public string? Token { get; set; }
+    public DateTime TokenExpiryTime { get; set; }
     public bool IsRevoked { get; set; }
 }
