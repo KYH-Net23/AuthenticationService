@@ -72,8 +72,11 @@ public static class TokenGeneratorService
             { "provider", providerName.Split('-').First() }
         };
 
+        var claimsIdentity = new ClaimsIdentity([new Claim(providerName.Split('-').First(), providerName.Split('-').First())]);
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
+            Subject = claimsIdentity,
             Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),
             Issuer = "https://www.rika.com",
             Audience = "https://www.rika.com",
