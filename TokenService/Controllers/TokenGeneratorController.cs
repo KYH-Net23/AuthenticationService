@@ -109,4 +109,24 @@ public class TokenGeneratorController : ControllerBase
 
 		return Ok(new { Message = "Success!" });
 	}
+
+	[HttpPost]
+	public async Task<IActionResult> GetTokenForEmailProvider([FromHeader(Name = "x-api-key")] string apiKey, [FromHeader(Name = "x-provider-name")] string providerName)
+	{
+		if (string.IsNullOrEmpty(apiKey))
+		{
+			return BadRequest("Api key is required");
+		}
+
+		(string? key, string? provider) = await _keyVaultService.GetSecretAsync(apiKey, providerName);
+
+		if (key is null || provider is null)
+		{
+			return BadRequest("Api key is invalid");
+		}
+
+		var token = TokenGeneratorService.GenerateAccessTokenToEmailProvider(_secretKeyForEmail, 5);
+
+		return Ok( new {Token = token});
+	}
 }
