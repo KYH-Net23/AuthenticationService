@@ -63,15 +63,21 @@ public static class TokenGeneratorService
         return principal;
     }
 
-    public static string GenerateAccessTokenToEmailProvider(string secretKey, int expirationMinutes)
+    public static string GenerateAccessTokenToEmailProvider(string providerName, string secretKey, int expirationMinutes)
     {
         var key = Encoding.ASCII.GetBytes(secretKey);
+
+        var claims = new Dictionary<string, object>
+        {
+            { "provider", providerName.Split('-').First() }
+        };
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),
             Issuer = "https://www.rika.com",
             Audience = "https://www.rika.com",
+            Claims = claims,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 

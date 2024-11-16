@@ -125,7 +125,7 @@ public class TokenGeneratorController : ControllerBase
 			return BadRequest(new{Error = "Invalid header credentials."});
 		}
 
-		var token = TokenGeneratorService.GenerateAccessTokenToEmailProvider(_secretKeyForEmail, 5);
+		var token = TokenGeneratorService.GenerateAccessTokenToEmailProvider(providerName, _secretKeyForEmail, 5);
 
 		return Ok( new {Token = token});
 	}
