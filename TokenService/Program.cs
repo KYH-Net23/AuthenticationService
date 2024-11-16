@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using TokenService.Context;
 using TokenService.Extensions;
 using TokenService.Models.DataModels;
+using TokenService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,8 @@ builder.Services.AddCors(options =>
 			.AllowAnyMethod()
 			.AllowCredentials());
 });
+
+builder.Services.AddSingleton<KeyVaultService>(_ => new KeyVaultService(vaultUri));
 
 // builder.Services.AddEndpointsApiExplorer();
 
