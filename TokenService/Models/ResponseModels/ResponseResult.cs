@@ -11,5 +11,5 @@ public class ResponseResult
 
     [JsonProperty("content")]
     [JsonPropertyName("content")]
-    public ResponseContent ResponseContent { get; set; } = null!;
+    public Content Content { get; set; } = null!;
 }

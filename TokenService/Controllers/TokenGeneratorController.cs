@@ -58,7 +58,7 @@ public class TokenGeneratorController : ControllerBase
 		if (!response.IsSuccessful) return Unauthorized();
 		if (result == null) return BadRequest();
 
-		var token = TokenGeneratorService.GenerateAccessToken(result.ResponseContent, _secretKey, _accessTokenDurationInMinutes);
+		var token = TokenGeneratorService.GenerateAccessToken(result.Content, _secretKey, _accessTokenDurationInMinutes);
 		var refreshToken = TokenGeneratorService.GenerateRefreshToken();
 
 		Response.Cookies.Append("accessToken", token, new CookieOptions
@@ -81,18 +81,18 @@ public class TokenGeneratorController : ControllerBase
 		
 		var refreshTokenModel = new RefreshToken
 		{
-			UserName = result.ResponseContent.Email,
+			UserName = result.Content.Email,
 			Token = refreshToken,
 			TokenExpiryTime = DateTime.UtcNow.AddHours(_refreshTokenCookieDurationInHours)
 		};
 
-		var user = await _context.Tokens.FirstOrDefaultAsync(x => x.UserName == result.ResponseContent.Email);
+		var user = await _context.Tokens.FirstOrDefaultAsync(x => x.UserName == result.Content.Email);
 
 		if (user == null)
 		{
 			_context.Tokens.Add(new RefreshToken
 			{
-				UserName = result.ResponseContent.Email,
+				UserName = result.Content.Email,
 				Token = refreshToken,
 				TokenExpiryTime = refreshTokenModel.TokenExpiryTime,
 				IsRevoked = false
@@ -107,7 +107,7 @@ public class TokenGeneratorController : ControllerBase
 
 		await _context.SaveChangesAsync();
 
-		return Ok(new { Message = "Success!" });
+		return Ok(new { User = result.Content });
 	}
 
 	[HttpPost("generate-email-token")]

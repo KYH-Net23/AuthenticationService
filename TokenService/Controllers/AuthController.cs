@@ -92,11 +92,10 @@ public class AuthController : ControllerBase
             if (userRefreshToken == null || userRefreshToken.Token != refreshToken || userRefreshToken.TokenExpiryTime <= DateTime.UtcNow)
                 return BadRequest(new {Message ="Invalid refresh token or token expired. Please login again."});
 
-            var responseContent = new ResponseContent
+            var responseContent = new Content
             {
-                Id = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value,
                 Email = principal.FindFirst(ClaimTypes.Email)?.Value,
-                Roles = principal.FindAll(ClaimTypes.Role).Select(claim => claim.Value)
+                Role = principal.FindAll(ClaimTypes.Role).Select(claim => claim.Value).ToList()
             };
 
             var newAccessToken = TokenGeneratorService.GenerateAccessToken(responseContent, _secretKey, _accessTokenDurationInMinutes);

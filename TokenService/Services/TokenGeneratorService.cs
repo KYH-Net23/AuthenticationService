@@ -9,17 +9,17 @@ namespace TokenService.Services;
 
 public static class TokenGeneratorService
 {
-    public static string GenerateAccessToken(ResponseContent content, string secretKey, int expirationMinutes)
+    public static string GenerateAccessToken(Content content, string secretKey, int expirationMinutes)
     {
         var key = Encoding.ASCII.GetBytes(secretKey);
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Sub, content.Id),
+            new(JwtRegisteredClaimNames.Sub, content.Email),
             new(JwtRegisteredClaimNames.Email, content.Email),
             new(JwtRegisteredClaimNames.Name, content.Email)
         };
-        claims.AddRange(content.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(content.Role.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
