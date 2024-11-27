@@ -29,6 +29,11 @@ public class AuthController : ControllerBase
     [Authorize]
     public IActionResult Validate()
     {
+        if (!Request.Cookies.TryGetValue("accessToken", out _) || !Request.Cookies.TryGetValue("refreshToken", out _))
+        {
+            return Unauthorized(new {isAuthenticated = false, role = Array.Empty<string>()});
+        }
+        
         try
         {
             var isAuthenticated = User.Identity!.IsAuthenticated;
