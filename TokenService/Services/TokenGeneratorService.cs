@@ -86,4 +86,27 @@ public static class TokenGeneratorService
 
         return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityTokenHandler().CreateToken(tokenDescriptor));
     }
+
+    public static bool ValidateToken(string token, string secretKey)
+    {
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                ValidateIssuer = false,
+                ValidateAudience = false
+            };
+
+            tokenHandler.ValidateToken(token, validationParameters, out _);
+
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
 }

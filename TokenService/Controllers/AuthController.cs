@@ -85,7 +85,7 @@ public class AuthController : ControllerBase
 
             var principal = TokenGeneratorService.GetPrincipalFromExpiredToken(accessToken, _secretKey);
 
-            var nameClaim = principal.FindFirst("name")?.Value;
+            var nameClaim = principal!.FindFirst("name")?.Value;
             if (nameClaim is null)
             {
                 return Unauthorized();
@@ -124,15 +124,34 @@ public class AuthController : ControllerBase
         }
     }
 
-    // [HttpPost, Authorize]
-    // [Route("revoke")]
-    // public IActionResult Revoke()
-    // {
-    //     var username = User.Identity.Name;
-    //     var user = _userContext.LoginModels.SingleOrDefault(u => u.UserName == username);
-    //     if (user == null) return BadRequest();
-    //     user.RefreshToken = null;
-    //     _userContext.SaveChanges();
-    //     return NoContent();
-    // }
+    [HttpPost("validate-token")]
+    public IActionResult ValidateBearerToken()
+    {
+        try
+        {
+            var authorizationHeader = Request.Headers.Authorization.FirstOrDefault();
+            if (string.IsNullOrEmpty(authorizationHeader) || !authorizationHeader.StartsWith("Bearer "))
+                return Unauthorized(new { isValid = false, message = "No token provided" });
+
+
+            var token = authorizationHeader["Bearer ".Length..].Trim();
+
+            var isValid = TokenGeneratorService.ValidateToken(token, _secretKey);
+
+            return isValid switch
+            {
+                true => Ok(new { isValid = true }),
+                _ => Unauthorized(new { isValid = false, message = "Invalid token" })
+            };
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                isValid = false,
+                message = "An error occurred during token validation",
+                error = ex.Message
+            });
+        }
+    }
 }
